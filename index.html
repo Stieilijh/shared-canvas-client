@@ -51,6 +51,12 @@
       socket.on('drawing', (data) => {
         drawLine(data.x0, data.y0, data.x1, data.y1, data.color, data.thickness);
       });
+	// Receive the stored drawing history
+      socket.on('load-drawing', (history) => {
+        history.forEach(data => {
+          drawLine(data.x0, data.y0, data.x1, data.y1, data.color, data.thickness, false);
+  	   });
+	});
 
       function drawLine(x0, y0, x1, y1, color, thickness, emit) {
         context.beginPath();

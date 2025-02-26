@@ -8,21 +8,28 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*",
-methods: ["GET", "POST"],
+    methods: ["GET", "POST"]
   }
 });
 
 app.use(cors());
 
-app.get('/', (req, res) => {
-  res.send("Socket.io Server is running!");
-});
+let drawingHistory = []; // Store all drawn lines
 
 io.on('connection', (socket) => {
   console.log('A user connected');
 
+  // Send existing drawings to the new user
+  socket.emit('load-drawing', drawingHistory);
+
   socket.on('drawing', (data) => {
+    drawingHistory.push(data); // Store the drawing data
     socket.broadcast.emit('drawing', data);
+  });
+
+  socket.on('clear-canvas', () => {
+    drawingHistory = []; // Clear history
+    io.emit('clear-canvas'); // Broadcast to all users
   });
 
   socket.on('disconnect', () => {
