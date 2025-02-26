@@ -1,0 +1,97 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Shared Canvas</title>
+    <style>
+      body { margin: 0; padding: 0; }
+      canvas { border: 1px solid #000; display: block; margin: auto; }
+      #controls { text-align: center; margin-top: 10px; }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div id="controls">
+      <label for="color">Color: </label>
+      <input type="color" id="color" value="#000000">
+      <label for="thickness">Thickness: </label>
+      <input type="range" id="thickness" min="1" max="50" value="5">
+    </div>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script>
+      const canvas = document.getElementById('canvas');
+      const context = canvas.getContext('2d');
+
+      // Resize canvas to fill the window
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      let drawing = false;
+      const current = {
+        color: document.getElementById('color').value,
+        thickness: document.getElementById('thickness').value
+      };
+
+      // Use your Render backend URL here!
+      const socket = io('https://your-render-app.onrender.com'); 
+
+      document.getElementById('color').addEventListener('change', (e) => {
+        current.color = e.target.value;
+      });
+
+      document.getElementById('thickness').addEventListener('change', (e) => {
+        current.thickness = e.target.value;
+      });
+
+      canvas.addEventListener('mousedown', onMouseDown);
+      canvas.addEventListener('mouseup', onMouseUp);
+      canvas.addEventListener('mouseout', onMouseUp);
+      canvas.addEventListener('mousemove', throttle(onMouseMove, 10));
+
+      socket.on('drawing', (data) => {
+        drawLine(data.x0, data.y0, data.x1, data.y1, data.color, data.thickness);
+      });
+
+      function drawLine(x0, y0, x1, y1, color, thickness, emit) {
+        context.beginPath();
+        context.moveTo(x0, y0);
+        context.lineTo(x1, y1);
+        context.strokeStyle = color;
+        context.lineWidth = thickness;
+        context.stroke();
+        context.closePath();
+
+        if (!emit) { return; }
+        socket.emit('drawing', { x0, y0, x1, y1, color, thickness });
+      }
+
+      function onMouseDown(e) {
+        drawing = true;
+        current.x = e.clientX;
+        current.y = e.clientY;
+      }
+
+      function onMouseUp() {
+        drawing = false;
+      }
+
+      function onMouseMove(e) {
+        if (!drawing) return;
+        drawLine(current.x, current.y, e.clientX, e.clientY, current.color, current.thickness, true);
+        current.x = e.clientX;
+        current.y = e.clientY;
+      }
+
+      function throttle(callback, delay) {
+        let previousCall = Date.now();
+        return function() {
+          const time = Date.now();
+          if (time - previousCall >= delay) {
+            previousCall = time;
+            callback.apply(null, arguments);
+          }
+        };
+      }
+    </script>
+  </body>
+</html>
