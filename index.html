@@ -16,6 +16,8 @@
       <input type="color" id="color" value="#000000">
       <label for="thickness">Thickness: </label>
       <input type="range" id="thickness" min="1" max="50" value="5">
+      <button id="clear">Clear Canvas</button>
+
     </div>
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script>
@@ -42,6 +44,14 @@
       document.getElementById('thickness').addEventListener('change', (e) => {
         current.thickness = e.target.value;
       });
+	document.getElementById('clear').addEventListener('click', () => {
+	  socket.emit('clear-canvas'); // Ask server to clear for everyone
+	  context.clearRect(0, 0, canvas.width, canvas.height); // Clear locally
+	});
+
+	socket.on('clear-canvas', () => {
+	  context.clearRect(0, 0, canvas.width, canvas.height); // Clear when someone else clears
+	});
 
       canvas.addEventListener('mousedown', onMouseDown);
       canvas.addEventListener('mouseup', onMouseUp);
