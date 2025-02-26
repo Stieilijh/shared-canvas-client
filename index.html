@@ -33,7 +33,7 @@
       };
 
       // Use your Render backend URL here!
-      const socket = io('https://your-render-app.onrender.com'); 
+      const socket = io('https://shared-canvas-client.onrender.com', { transports: ['websocket'] }); 
 
       document.getElementById('color').addEventListener('change', (e) => {
         current.color = e.target.value;
