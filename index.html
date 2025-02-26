@@ -5,7 +5,7 @@
     <title>Shared Canvas</title>
     <style>
       body { margin: 0; padding: 0; }
-      canvas { border: 1px solid #000; display: block; margin: auto; }
+      canvas { display: block; margin: auto; }
       #controls { text-align: center; margin-top: 10px; }
     </style>
   </head>
@@ -25,8 +25,10 @@
       const context = canvas.getContext('2d');
 
       // Resize canvas to fill the window
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      canvas.getContext('2d').scale(dpr, dpr);
 
       let drawing = false;
       const current = {
@@ -34,7 +36,7 @@
         thickness: document.getElementById('thickness').value
       };
 
-      // Use your Render backend URL here!
+      // Connect to Render backend URL 
       const socket = io('https://shared-canvas-client.onrender.com', { transports: ['websocket'] }); 
 
       document.getElementById('color').addEventListener('change', (e) => {
@@ -53,10 +55,35 @@
 	  context.clearRect(0, 0, canvas.width, canvas.height); // Clear when someone else clears
 	});
 
-      canvas.addEventListener('mousedown', onMouseDown);
-      canvas.addEventListener('mouseup', onMouseUp);
-      canvas.addEventListener('mouseout', onMouseUp);
-      canvas.addEventListener('mousemove', throttle(onMouseMove, 10));
+canvas.addEventListener('mousedown', (e) => {
+    drawing = true;
+    const { x, y } = getMousePos(canvas, e);
+    lastX = x;
+    lastY = y;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    if (!drawing) return;
+    const { x, y } = getMousePos(canvas, e);
+    drawLine(lastX, lastY, x, y, color, thickness, true);
+    lastX = x;
+    lastY = y;
+});
+
+canvas.addEventListener('mouseup', () => drawing = false);
+canvas.addEventListener('mouseleave', () => drawing = false);
+
+      
+      function getMousePos(canvas, event) {
+    const rect = canvas.getBoundingClientRect(); // Get canvas position relative to the viewport
+    const scaleX = canvas.width / rect.width; // Handle scaling
+    const scaleY = canvas.height / rect.height;
+
+    return {
+        x: (event.clientX - rect.left) * scaleX,
+        y: (event.clientY - rect.top) * scaleY
+    };
+}
 
       socket.on('drawing', (data) => {
         drawLine(data.x0, data.y0, data.x1, data.y1, data.color, data.thickness);
